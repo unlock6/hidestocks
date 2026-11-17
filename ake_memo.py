@@ -25,7 +25,7 @@ BASE = Path(__file__).resolve().parent
 SETTINGS = BASE / "settings.json"
 STATUS = BASE / "status.json"
 KST = timezone(timedelta(hours=9))
-POLL_SECONDS = 5
+POLL_SECONDS = 1
 
 
 def atomic_json(path, value):
@@ -245,6 +245,7 @@ class Memo:
     def worker(self):
         failures = 0
         while not self.stop.is_set():
+            started_at = time.monotonic()
             self.wake.clear()
             with self.selection_lock:
                 symbol, generation = self.symbol, self.generation
@@ -260,7 +261,8 @@ class Memo:
                 self.messages.put_nowait(value)
             except queue.Full:
                 pass
-            self.wake.wait(min(30, POLL_SECONDS * max(1, failures)))
+            interval = POLL_SECONDS if failures == 0 else min(30, 5 * failures)
+            self.wake.wait(max(0, interval - (time.monotonic() - started_at)))
 
     def apply_message(self, message):
         if "symbols" in message:

@@ -77,7 +77,8 @@ def fetch_quote(symbol=SYMBOL):
 def parse_symbols(payload):
     symbols = payload.get("symbols", []) if isinstance(payload, dict) else []
     result = sorted({item["symbol"] for item in symbols if isinstance(item, dict)
-                     and item.get("status") == "TRADING" and item.get("contractType") == "PERPETUAL"
+                     and item.get("status") == "TRADING"
+                     and item.get("contractType") in {"PERPETUAL", "TRADIFI_PERPETUAL"}
                      and item.get("quoteAsset") == "USDT" and isinstance(item.get("symbol"), str)
                      and re.fullmatch(r"\w{1,30}USDT", item["symbol"])})
     if not result:
@@ -353,8 +354,11 @@ def self_test():
         raise AssertionError("Invalid symbol accepted")
     markets = [{"symbol": "BTCUSDT", "status": "TRADING", "contractType": "PERPETUAL", "quoteAsset": "USDT"},
                {"symbol": "ETHUSDT", "status": "SETTLING", "contractType": "PERPETUAL", "quoteAsset": "USDT"},
-               {"symbol": "BTCUSDT_261225", "status": "TRADING", "contractType": "CURRENT_QUARTER", "quoteAsset": "USDT"}]
-    assert parse_symbols({"symbols": markets}) == ["BTCUSDT"]
+               {"symbol": "BTCUSDT_261225", "status": "TRADING", "contractType": "CURRENT_QUARTER", "quoteAsset": "USDT"},
+               {"symbol": "SKHYUSDT", "status": "TRADING", "contractType": "TRADIFI_PERPETUAL", "quoteAsset": "USDT"},
+               {"symbol": "SKHYNIXUSDT", "status": "SETTLING", "contractType": "TRADIFI_PERPETUAL", "quoteAsset": "USDT"},
+               {"symbol": "OTHERUSDT", "status": "TRADING", "contractType": "TRADIFI_PERPETUAL", "quoteAsset": "USDC"}]
+    assert parse_symbols({"symbols": markets}) == ["BTCUSDT", "SKHYUSDT"]
     print("PASS: quote validation, timestamps, symbol normalization, active perpetual filtering")
 
 
